@@ -159,7 +159,11 @@ struct SongRow: View {
 ### データモデル（Codable構造体）
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+struct SearchResponse: Codable {
+
+    let results: [Song]
+
+}
 ```
 
 **何をしているか：**
