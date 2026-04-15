@@ -152,7 +152,7 @@ struct SongRow: View {
 
 **このアプリは何をするものか：**
 
-（アプリの動作を自分の言葉で説明する。スクリーンショットを貼ってもよい。）
+文字を打って検索するとitunesのapiを使い曲、アーティストの写真が出てくる
 
 ## コードの詳細解説
 
@@ -167,10 +167,10 @@ struct SearchResponse: Codable {
 ```
 
 **何をしているか：**
-（この部分が果たしている役割を説明する）
+インターネットから受け取った検索結果のデータを保持しておくための箱
 
 **なぜこう書くのか：**
-（別の書き方ではなく、この書き方が選ばれている理由を説明する）
+サーバー側とデータの包み方を合わせる為、また情報を追加しやすい形の為
 
 **もしこう書かなかったら：**
 （この部分を省略したり変えたりすると何が起きるか。実際に試した結果があればここに書く）
@@ -180,29 +180,93 @@ struct SearchResponse: Codable {
 ### API通信の処理
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+func searchMusic() async {
+        guard let encodedText = searchText.addingPercentEncoding(
+            withAllowedCharacters: .urlQueryAllowed
+        ) else { return }
+
+        let urlString = "https://itunes.apple.com/search?term=\(encodedText)&media=music&country=jp&limit=25"
+
+        guard let url = URL(string: urlString) else { return }
+
+        isLoading = true
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(SearchResponse.self, from: data)
+            songs = response.results
+        } catch {
+            print("エラー: \(error.localizedDescription)")
+            songs = []
+        }
+
+        isLoading = false
+    }
 ```
 
 **何をしているか：**
-
+urlでアクセスして、先ほどのCodableの箱から実際に取り出す
 **なぜこう書くのか：**
-
+まずアプリをフリーズさせるのはかなりやってはいけない行為なので非同期で動かしていたり、エラーが出る前におかしかったら止めている。
 **もしこう書かなかったら：**
-
+検索している間はアプリが止まっているのか動いているのか分からなくて検索ボタンを連打されたりエラーが発生したりする。
 ---
 
 ### ビューの構成
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+struct ContentView: View {
+    @State private var songs: [Song] = []
+    @State private var searchText: String = ""
+    @State private var isLoading: Bool = false
+
+    var body: some View {
+        NavigationStack {
+            VStack {
+                // 検索バー
+                HStack {
+                    TextField("アーティスト名を入力", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+
+                    Button("検索") {
+                        Task {
+                            await searchMusic()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(searchText.isEmpty)
+                }
+                .padding(.horizontal)
+
+                // 検索結果リスト
+                if isLoading {
+                    ProgressView("検索中...")
+                        .padding()
+                    Spacer()
+                } else if songs.isEmpty {
+                    ContentUnavailableView(
+                        "曲を検索してみよう",
+                        systemImage: "music.note",
+                        description: Text("アーティスト名を入力して検索ボタンを押してください")
+                    )
+                } else {
+                    List(songs) { song in
+                        SongRow(song: song)
+                    }
+                }
+            }
+            .navigationTitle("Music Search")
+        }
+    }
+
 ```
 
 **何をしているか：**
-
+メインの画面を構成している部分
 **なぜこう書くのか：**
-
+画面を止めたくないため常に動きを持たせている
 **もしこう書かなかったら：**
-
+実際には動いているが表向きでは画面が止まるということが頻発する
 ---
 
 （必要に応じてセクションを増やす）
