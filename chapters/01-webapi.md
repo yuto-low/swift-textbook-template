@@ -277,7 +277,7 @@ struct ContentView: View {
 |------|------|--------|
 | 例：`Codable` | JSONデータとSwiftの構造体を相互変換するプロトコル | `struct Song: Codable { ... }` |
 | 例：`async/await` | 非同期処理を同期的に書ける構文 | `let data = try await URLSession.shared.data(from: url)` |
-| | | |
+| d| | |
 | | | |
 | | | |
 
