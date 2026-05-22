@@ -9,7 +9,13 @@
 ### Q1
 
 **質問：**
-（）
+（struct SearchResponse: Codable {
+
+    let results: [Song]
+
+}
+
+初学者向けに何を定義しているか教えてください）
 
 **AIの回答の要点：**
 （長い回答の場合、要点だけ自分の言葉でまとめる）
