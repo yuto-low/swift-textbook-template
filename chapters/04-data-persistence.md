@@ -1,7 +1,7 @@
 # 第4章：データの永続化
 
-> 執筆者：（氏名）
-> 最終更新：YYYY-MM-DD
+> 執筆者：千葉　侑冬
+> 最終更新：2026-05-27
 
 ## この章で学ぶこと
 
@@ -260,14 +260,27 @@ struct SettingsView: View {
 
 **このアプリは何をするものか：**
 
-（アプリの動作を自分の言葉で説明する。スクリーンショットを貼ってもよい。）
+メモを書きデータを保存する
 
 ## コードの詳細解説
 
 ### SwiftDataモデル（@Model）
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+@Model
+class Memo {
+    var title: String
+    var content: String
+    var createdAt: Date
+    var isFavorite: Bool
+
+    init(title: String, content: String, createdAt: Date = .now, isFavorite: Bool = false) {
+        self.title = title
+        self.content = content
+        self.createdAt = createdAt
+        self.isFavorite = isFavorite
+    }
+}
 ```
 
 **何をしているか：**
