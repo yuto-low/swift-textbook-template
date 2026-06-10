@@ -178,59 +178,233 @@ struct CameraView: UIViewControllerRepresentable {
 
 **このアプリは何をするものか：**
 
-（アプリの動作を自分の言葉で説明する。スクリーンショットを貼ってもよい。）
+IPhoneのカメラで撮影した写真、または写真ライブラリから選んだ画像を表示する
 
 ## コードの詳細解説
-
+コードは大まかに二つに別れていて
+SwiftUIとUIKIT連携のものSwiftUIにカメラで撮る機能がないためUIKitを使っている
 ### PhotosPickerによる写真選択
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+import SwiftUI
+import PhotosUI
+import UIKit
+
+struct ContentView: View {
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var selectedImage: Image?
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                imageDisplayArea
+
+                PhotosPicker(selection: $selectedItem, matching: .images) {
+                    Label("ライブラリ", systemImage: "photo.on.rectangle")
+                }
+                .buttonStyle(.bordered)
+                .padding()
+            }
+            .navigationTitle("写真選択")
+            .onChange(of: selectedItem) { _, newItem in
+                Task {
+                    await loadImage(from: newItem)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var imageDisplayArea: some View {
+        if let image = selectedImage {
+            image
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxHeight: 400)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(radius: 4)
+                .padding()
+        } else {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.gray.opacity(0.1))
+                .frame(height: 300)
+                .overlay {
+                    VStack(spacing: 8) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.gray)
+                        Text("写真を選択してください")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding()
+        }
+    }
+
+    func loadImage(from item: PhotosPickerItem?) async {
+        guard let item = item else { return }
+
+        do {
+            if let data = try await item.loadTransferable(type: Data.self),
+               let uiImage = UIImage(data: data) {
+                selectedImage = Image(uiImage: uiImage)
+            }
+        } catch {
+            print("Error: \(error.localizedDescription)")
+        }
+    }
+}
+
+#Preview {
+    ContentView()
+}
 ```
 
 **何をしているか：**
-（この部分が果たしている役割を説明する）
+常に画面を動かしながら選択した写真を出す
 
 **なぜこう書くのか：**
-（別の書き方ではなく、この書き方が選ばれている理由を説明する）
+アプリがフリーズするのを防ぐ。
+ユーザーが選んだ一枚の写真だけアプリ側に送る
 
 **もしこう書かなかったら：**
-（この部分を省略したり変えたりすると何が起きるか。実際に試した結果があればここに書く）
+PhotosPickerItemから直接Imageを取ることはできるがエラーが発生したときエラー内容が分からず解決が難しい
 
 ---
 
 ### 画像の非同期読み込み
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+import SwiftUI
+import PhotosUI
+
+struct ContentView: View {
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var selectedImage: Image?
+
+    var body: some View {
+        PhotosPicker(selection: $selectedItem, matching: .images) {
+            Text("ライブラリ")
+        }
+        .onChange(of: selectedItem) { _, newItem in
+            Task {
+                await loadImage(from: newItem)
+            }
+        }
+    }
+
+    func loadImage(from item: PhotosPickerItem?) async {
+        guard let item = item else { return }
+        do {
+            if let data = try await item.loadTransferable(type: Data.self),
+               let uiImage = UIImage(data: data) {
+                selectedImage = Image(uiImage: uiImage)
+            }
+        } catch {
+            print("Error: \(error.localizedDescription)")
+        }
+    }
+}
 ```
 
 **何をしているか：**
+写真を選んだ瞬間に自動でバックグラウンド処理を立ち上げ、アプリをフリーズさせずに安全に画像を読み込む
 
 **なぜこう書くのか：**
+ユーザーにストレスを与えないため
+表と裏で処理を走らせている
 
 **もしこう書かなかったら：**
+iOSによって一定時間以上動かないとクラッシュする
 
 ---
 
 ### UIViewControllerRepresentableによるカメラ連携
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+import SwiftUI
+import UIKit
+
+struct CameraView: UIViewControllerRepresentable {
+    @Binding var capturedImage: UIImage?
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraView
+
+        init(_ parent: CameraView) {
+            self.parent = parent
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.capturedImage = image
+            }
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
+    }
+}
 ```
 
 **何をしているか：**
+SwiftUIにカメラ撮影の機能がないためUIkitから翻訳して使えるようにしている
 
 **なぜこう書くのか：**
+ゼロからカメラの調整や画面を作るのは大変だからapple用意した画面を使う
 
 **もしこう書かなかったら：**
-
+画面を作るのに何百行もかかる
 ---
 
 ### Coordinatorパターン
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+func makeCoordinator() -> Coordinator {
+    Coordinator(self)
+}
+
+class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    let parent: CameraView
+
+    init(_ parent: CameraView) {
+        self.parent = parent
+    }
+
+    func imagePickerController(
+        _ picker: UIImagePickerController,
+        didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+    ) {
+        if let image = info[.originalImage] as? UIImage {
+            parent.capturedImage = image
+        }
+        parent.dismiss()
+    }
+
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        parent.dismiss()
+    }
+}
 ```
 
 **何をしているか：**
