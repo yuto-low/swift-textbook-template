@@ -322,37 +322,93 @@ Map(position: $cameraPosition, selection: $selectedLandmark) {
 **何をしているか：**
 どれくらい縮小をしているか記憶していたりなどユーザーの動きを記憶している
 **なぜこう書くのか：**
+リアルタイムでユーザーが動かしている情報とプログラム内のデータを一致させる為
 
 **もしこう書かなかったら：**
+画面が動いたら変数がリセットされてバグが発生する
 
 ---
 
 ### マーカーの表示
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+ForEach(filteredLandmarks) { landmark in
+    Marker(
+        landmark.name,
+        systemImage: landmark.category.iconName,
+        coordinate: landmark.coordinate
+    )
+    .tint(landmark.category.color)
+    .tag(landmark)
+}
 ```
 
 **何をしているか：**
-
+アプリ側がどこをタップしているのか認識し、データと画面を連結させている
 **なぜこう書くのか：**
-
+画面を書き換えることを考えずに自動的に見た目の切り替えなどをしてくれるのでルールを連結するだけで済む
 **もしこう書かなかったら：**
-
+観光スポットを増やすたびにコードがどんどん長くなっていく
 ---
 
 ### フィルター機能
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+@State private var selectedCategories: Set<Landmark.Category> = Set(Landmark.Category.allCases)
+
+var filteredLandmarks: [Landmark] {
+    Landmark.sampleData.filter { selectedCategories.contains($0.category) }
+}
+
+struct CategoryFilter: View {
+    @Binding var selectedCategories: Set<Landmark.Category>
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(Landmark.Category.allCases, id: \.self) { category in
+                Button {
+                    if selectedCategories.contains(category) {
+                        selectedCategories.remove(category)
+                    } else {
+                        selectedCategories.insert(category)
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: category.iconName)
+                        Text(category.rawValue)
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        selectedCategories.contains(category)
+                            ? category.color.opacity(0.2)
+                            : Color.gray.opacity(0.1)
+                    )
+                    .foregroundStyle(
+                        selectedCategories.contains(category)
+                            ? category.color
+                            : .gray
+                    )
+                    .clipShape(Capsule())
+                }
+            }
+        }
+        .padding(8)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
 ```
 
 **何をしているか：**
+ボタンを押すことでデータが連動して自動更新される
 
 **なぜこう書くのか：**
+SwiftUIの中で最も強力で安全な設計思想で自動的に書き換えてくれる
 
 **もしこう書かなかったら：**
-
+手動で書き換えることになる
 ---
 
 （必要に応じてセクションを増やす）
@@ -363,7 +419,7 @@ Map(position: $cameraPosition, selection: $selectedLandmark) {
 |------|------|--------|
 | 例：`Map` | SwiftUIで地図を表示するビューコンポーネント | `Map(position: .constant(.region(region)))` |
 | 例：`Marker` | 地図上に位置をマーキングするコンポーネント | `Marker("名前", coordinate: coordinate)` |
-| | | |
+| State,Binding| データ連携| 画面間でデータを自由にバグなくやり取りができる |
 | | | |
 | | | |
 
