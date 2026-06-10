@@ -230,6 +230,8 @@ struct LandmarkCard: View {
 
 **このアプリは何をするものか：**
 
+ただのマップアプリではなくピンを刺せることができ、自分でカスタマイズができる
+
 （アプリの動作を自分の言葉で説明する。スクリーンショットを貼ってもよい。）
 
 ## コードの詳細解説
@@ -237,14 +239,53 @@ struct LandmarkCard: View {
 ### データモデル（ランドマーク構造体）
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+import SwiftUI
+import MapKit
+
+struct Landmark: Identifiable, Hashable {
+    let id = UUID()
+    let name: String
+    let description: String
+    let coordinate: CLLocationCoordinate2D
+    let category: Category
+
+    static func == (lhs: Landmark, rhs: Landmark) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    enum Category: String, CaseIterable {
+        case temple = "寺社"
+        case tower = "タワー"
+        case park = "公園"
+
+        var iconName: String {
+            switch self {
+            case .temple: return "building.columns"
+            case .tower: return "antenna.radiowaves.left.and.right"
+            case .park: return "leaf"
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .temple: return .red
+            case .tower: return .blue
+            case .park: return .green
+            }
+        }
+    }
+}
 ```
 
 **何をしているか：**
-（この部分が果たしている役割を説明する）
+アイコンや色を自動的に分ける定義のようなもの
 
 **なぜこう書くのか：**
-（別の書き方ではなく、この書き方が選ばれている理由を説明する）
+画面側で書くことになると条件分岐やらで大変だから
 
 **もしこう書かなかったら：**
 （この部分を省略したり変えたりすると何が起きるか。実際に試した結果があればここに書く）
@@ -254,11 +295,32 @@ struct LandmarkCard: View {
 ### 地図の表示とカメラ制御
 
 ```swift
-// 該当部分のコードを抜粋して貼る
+@State private var cameraPosition: MapCameraPosition = .region(
+    MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 35.6812, longitude: 139.7671),
+        span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+    )
+)
+
+Map(position: $cameraPosition, selection: $selectedLandmark) {
+    ForEach(filteredLandmarks) { landmark in
+        Marker(
+            landmark.name,
+            systemImage: landmark.category.iconName,
+            coordinate: landmark.coordinate
+        )
+        .tint(landmark.category.color)
+        .tag(landmark)
+    }
+}
+.mapStyle(.standard(elevation: .realistic))
+.onMapCameraChange { context in
+
+}
 ```
 
 **何をしているか：**
-
+どれくらい縮小をしているか記憶していたりなどユーザーの動きを記憶している
 **なぜこう書くのか：**
 
 **もしこう書かなかったら：**
