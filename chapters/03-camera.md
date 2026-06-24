@@ -423,7 +423,7 @@ class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationContro
 |------|------|--------|
 | 例：`PhotosPicker` | フォトライブラリから画像を選択するコンポーネント | `PhotosPicker(selection: $selectedItem, matching: .images)` |
 | 例：`UIImagePickerController` | カメラまたはフォトライブラリにアクセスするUIKitコンポーネント | `picker.sourceType = .camera` |
-| | | |
+| Info.plist| プライバシー権限の管理| |
 | | | |
 | | | |
 
